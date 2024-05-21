@@ -4,6 +4,7 @@ import random
 import sys
 import time
 import pygame as pg
+NUM_OF_ITEMS = 4
 
 
 WIDTH, HEIGHT = 1600, 900  # ゲームウィンドウの幅，高さ
@@ -324,17 +325,49 @@ class Sheeld(pg.sprite.Sprite):
         if self.life < 0:
             __class__.is_not_shield = True
             self.kill()
-        
 
+
+class Item(pg.sprite.Sprite):
+    """
+    アイテムをスポーンさせるクラス
+    触れると回収。アイテムは一個のみストック可能
+    アイテムの使用は前回の追加機能と同じ
+    """
+
+    def __init__(self,):
+        """
+        アイテムSurfaceの生成とアイテムをスポーンさせる設定を定義する
+        """
+        self.itm_dct = {
+            1: pg.image.load(f"fig/space_blackhole2.png"),
+            2: pg.image.load(f"fig/small_star7_yellow.png"),
+            3: pg.image.load(f"fig/game_tate.png")
+        }
+        
+        self.randomnumber = random.randint(1,3)        #アイテムの画像が入っている辞書を定義する
+        self.image = self.itm_dct[self.randomnumber]   #リストにあるアイテムimageをランダムに選ぶ
+        self.rect = self.image.get_rect()
+        self.rect.center = random.randint(0,WIDTH), random.randint(0,HEIGHT)     #アイテムをスポーンさせる場所をランダムに決定する 
+
+        self.getfrg = False                 #アイテムの所持判定の定義。アイテムに接触するとTrueになる
+        self.exist_frg = False
+
+    def update(self, screen):
+        """
+        アイテムの描画
+        """
+        #if len(self.display_lst) > 0:
+         #   for display in self.display_lst:
+          #      screen.blit(display[0], display[1])
         
 
 def main():
-
 
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
+    itm_lst = [Item() for i in range(NUM_OF_ITEMS)]
     #neobeam = NeoBeam 
     #score.value =900000000
 
@@ -349,6 +382,8 @@ def main():
     tmr = 0
     clock = pg.time.Clock()
     while True:
+        item = Item()
+        itm_count = 0
         key_lst = pg.key.get_pressed()
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -363,12 +398,13 @@ def main():
 
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
-            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value >= 200:
+
+            if (event.type == pg.KEYDOWN) and (event.key == pg.K_RETURN) and (score.value >= 200):  #エンターキーが押され、アイテムを所持している場合
                 gravity.add(Gravity(400))
                 score.value -= 200
 
 
-            if (event.type == pg.KEYDOWN) and (event.key == pg.K_RSHIFT) and (score.value >= 100) and not (bird.state=="hyper"):   #Rshiftキーが押されたかつスコアが１００以上の場合
+            if (event.type == pg.KEYDOWN) and (event.key == pg.K_RSHIFT) and (score.value >= 100) and not (bird.state=="hyper"):   #Rshiftキーが押されたかつアイテムを所持している場合
                 bird.state = "hyper"    #無敵状態にする
                 score.value -= 100      #スコアを減らして５００フレーム分無敵にする
                 bird.hyper_life = 500
@@ -382,6 +418,10 @@ def main():
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
+
+        if tmr % 100 == 0:  # 1分に1回アイテムを出現させる
+            itm_lst[itm_count].exist_frg = True
+            itm_count += 1
 
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
@@ -406,11 +446,16 @@ def main():
             exps.add(Explosion(bomb, 50))
             score.value += 1
 
-        
+        for for_item in itm_lst:
+            if bird.rect.colliderect(for_item[1]): # アイテムと鳥の衝突判定
+                item.getfrg = True
+            else:
+                pass
+            
         
         # Cボタンを押すとシールドを展開
         #if key_lst[pg.K_c] & score.value >= 50:
-        if key_lst[pg.K_c] & Sheeld.is_not_shield & (score.value >= 50):
+        if key_lst[pg.K_c] & Sheeld.is_not_shield & (score.value >= 50):  # cキーが押され、画面上にシールドがなく、スコアが50以上でアイテムを所持している場合
         #if key_lst[pg.K_c]:
             print(score.value >= 50)
             print(Sheeld.is_not_shield)
@@ -451,6 +496,7 @@ def main():
         score.update(screen)
         gravity.draw(screen)
         gravity.update()
+        item.update(screen)
 
         if not Sheeld.is_not_shield:
             sheelds.update(bird)
