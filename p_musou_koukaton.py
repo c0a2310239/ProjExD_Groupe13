@@ -4,7 +4,7 @@ import random
 import sys
 import time
 import pygame as pg
-NUM_OF_ITEMS = 4
+NUM_OF_ITEMS = 4     #出現させるアイテムの数の定義
 
 
 WIDTH, HEIGHT = 1600, 900  # ゲームウィンドウの幅，高さ
@@ -176,6 +176,7 @@ class Beam(pg.sprite.Sprite):
         if check_bound(self.rect) != (True, True):
             self.kill()
 
+
 '''
 Beamを複数つくる弾幕クラス
 class NeoBeam():
@@ -266,6 +267,7 @@ class Score:
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         screen.blit(self.image, self.rect)
 
+
 class Gravity(pg.sprite.Sprite):
     """
     エンターキーを押すと画面内の敵を倒す
@@ -282,6 +284,7 @@ class Gravity(pg.sprite.Sprite):
         self.life -= 1
         if self.life <= 0:
             self.kill()
+
 
 class Sheeld(pg.sprite.Sprite):
     """
@@ -334,7 +337,7 @@ class Item(pg.sprite.Sprite):
     アイテムの使用は前回の追加機能と同じ
     """
 
-    def __init__(self,):
+    def __init__(self):
         """
         アイテムSurfaceの生成とアイテムをスポーンさせる設定を定義する
         """
@@ -346,19 +349,20 @@ class Item(pg.sprite.Sprite):
         
         self.randomnumber = random.randint(1,3)        #アイテムの画像が入っている辞書を定義する
         self.image = self.itm_dct[self.randomnumber]   #リストにあるアイテムimageをランダムに選ぶ
+        pg.transform.scale(self.itm_dct[self.randomnumber], (100, 100))
         self.rect = self.image.get_rect()
-        self.rect.center = random.randint(0,WIDTH), random.randint(0,HEIGHT)     #アイテムをスポーンさせる場所をランダムに決定する 
+        self.rect.center = random.randint(0,WIDTH-100), random.randint(0,HEIGHT-100)     #アイテムをスポーンさせる場所をランダムに決定する 
 
-        self.getfrg = False                 #アイテムの所持判定の定義。アイテムに接触するとTrueになる
+        self.get_frg = False                  #アイテムの所持判定の定義。アイテムに接触するとTrueになる
         self.exist_frg = False
+        
 
-    def update(self, screen):
+    def update(self, screen:pg.Surface):
         """
         アイテムの描画
         """
-        #if len(self.display_lst) > 0:
-         #   for display in self.display_lst:
-          #      screen.blit(display[0], display[1])
+        screen.blit(self.itm_dct[self.randomnumber], self.rect.center)
+            
         
 
 def main():
@@ -367,7 +371,7 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load(f"fig/pg_bg.jpg")
     score = Score()
-    itm_lst = [Item() for i in range(NUM_OF_ITEMS)]
+    itm_lst = [Item() for i in range(NUM_OF_ITEMS)]      #出現させるアイテムの数だけItemクラスを生成する
     #neobeam = NeoBeam 
     #score.value =900000000
 
@@ -378,19 +382,18 @@ def main():
     emys = pg.sprite.Group()
     gravity = pg.sprite.Group()
     sheelds = pg.sprite.Group()
-
+    itm_count = 0
     tmr = 0
     clock = pg.time.Clock()
     while True:
-        item = Item()
-        itm_count = 0
+        
         key_lst = pg.key.get_pressed()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 0
             
             #もし左シフトキーおよびスペースキーが押されたら五個のビームを生成
-            if event.type == pg.KEYDOWN and event.key == pg.K_LSHIFT and pg.K_SPACE: 
+            if event.type == pg.KEYDOWN and event.key == pg.K_LSHIFT and pg.K_SPACE:
                 for i in range(5):
                     if i != 2:
                     #l = neobeam.gen_beams()
@@ -399,15 +402,19 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
 
-            if (event.type == pg.KEYDOWN) and (event.key == pg.K_RETURN) and (score.value >= 200):  #エンターキーが押され、アイテムを所持している場合
-                gravity.add(Gravity(400))
-                score.value -= 200
+            if (event.type == pg.KEYDOWN) and (event.key == pg.K_RETURN):  #エンターキーが押され、アイテムを所持している場合
+                for grv in range(len(itm_lst)):
+                    if itm_lst[grv].randomnumber == 1 and itm_lst[grv].get_frg:
+                        gravity.add(Gravity(400))
+                        itm_lst[grv].get_frg = False
 
 
-            if (event.type == pg.KEYDOWN) and (event.key == pg.K_RSHIFT) and (score.value >= 100) and not (bird.state=="hyper"):   #Rshiftキーが押されたかつアイテムを所持している場合
-                bird.state = "hyper"    #無敵状態にする
-                score.value -= 100      #スコアを減らして５００フレーム分無敵にする
-                bird.hyper_life = 500
+            if (event.type == pg.KEYDOWN) and (event.key == pg.K_RSHIFT) and not (bird.state=="hyper"):   #Rshiftキーが押されたかつアイテムを所持している場合
+                for muteki in range(len(itm_lst)):
+                    if itm_lst[muteki].randomnumber == 2 and itm_lst[muteki].get_frg:
+                        bird.state = "hyper"    #無敵状態にする
+                        itm_lst[muteki].get_frg = False      #アイテムを非所持状態にして５００フレーム分無敵にする
+                        bird.hyper_life = 500
 
         screen.blit(bg_img, [0, 0])
 
@@ -419,7 +426,7 @@ def main():
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
 
-        if tmr % 100 == 0:  # 1分に1回アイテムを出現させる
+        if tmr % 600 == 0:  # 1分に1回アイテムを出現させる
             itm_lst[itm_count].exist_frg = True
             itm_count += 1
 
@@ -447,23 +454,27 @@ def main():
             score.value += 1
 
         for for_item in itm_lst:
-            if bird.rect.colliderect(for_item[1]): # アイテムと鳥の衝突判定
-                item.getfrg = True
+            if bird.rect.colliderect(for_item.rect): # アイテムと鳥の衝突判定
+                for_item.get_frg = True
+                for_item.exist_frg = False
             else:
                 pass
             
         
         # Cボタンを押すとシールドを展開
         #if key_lst[pg.K_c] & score.value >= 50:
-        if key_lst[pg.K_c] & Sheeld.is_not_shield & (score.value >= 50):  # cキーが押され、画面上にシールドがなく、スコアが50以上でアイテムを所持している場合
+        if key_lst[pg.K_c] & Sheeld.is_not_shield:  # cキーが押され、画面上にシールドがなく、アイテムを所持している場合
         #if key_lst[pg.K_c]:
-            print(score.value >= 50)
-            print(Sheeld.is_not_shield)
-            #score.value -= 50
-            print("シールド展開")
-            # スコアが50減る
-            score.value -= 50
-            sheelds.add(Sheeld(bird, 400))
+            for sld in range(len(itm_lst)):
+                if itm_lst[sld].randomnumber == 3 & itm_lst[sld].get_frg:
+                    #print(score.value >= 50)
+                    #print(Sheeld.is_not_shield)
+                    #score.value -= 50
+                    print("シールド展開")
+                    # アイテムを非所持状態にする
+                    itm_lst[sld].get_frg = False
+                    score.value -= 50
+                    sheelds.add(Sheeld(bird, 400))
         
         # 壁と爆弾が衝突したら爆発
         for bomb in pg.sprite.groupcollide(bombs, sheelds, True, False).keys():
@@ -496,7 +507,9 @@ def main():
         score.update(screen)
         gravity.draw(screen)
         gravity.update()
-        item.update(screen)
+        for exist in range(len(itm_lst)):        #アイテムが存在しているならば、描画する
+            if itm_lst[exist].exist_frg == True:
+                itm_lst[exist].update(screen)
 
         if not Sheeld.is_not_shield:
             sheelds.update(bird)
