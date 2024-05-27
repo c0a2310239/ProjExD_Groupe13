@@ -426,7 +426,7 @@ def main():
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
 
-        if tmr % 600 == 0:  # 1分に1回アイテムを出現させる
+        if tmr % 3600 == 0:  # 1分に1回アイテムを出現させる
             itm_lst[itm_count].exist_frg = True
             itm_count += 1
 
@@ -459,7 +459,6 @@ def main():
                 for_item.exist_frg = False
             else:
                 pass
-            
         
         # Cボタンを押すとシールドを展開
         #if key_lst[pg.K_c] & score.value >= 50:
